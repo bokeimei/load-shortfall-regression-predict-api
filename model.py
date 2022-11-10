@@ -28,6 +28,40 @@ import pickle
 import json
 
 def _preprocess_data(data):
+# create a function to use in cleaning the test data
+
+#def engineer_data(filepath):
+    # Read csv file into dataframe 
+    df = pd.read_csv(data)
+    
+     # create new features
+    df['Year']  = df['time'].astype('datetime64').dt.year
+    df['Month_of_year']  = df['time'].astype('datetime64').dt.month
+    df['Week_of_year'] = df['time'].astype('datetime64').dt.weekofyear
+    df['Day_of_year']  = df['time'].astype('datetime64').dt.dayofyear
+    df['Day_of_month']  = df['time'].astype('datetime64').dt.day
+    df['Day_of_week'] = df['time'].astype('datetime64').dt.dayofweek
+    df['Hour_of_week'] = ((df['time'].astype('datetime64').dt.dayofweek) * 24 + 24) - (24 - df['time'].astype('datetime64').dt.hour)
+    df['Hour_of_day']  = df['time'].astype('datetime64').dt.hour
+    
+    #Filling missing values
+    df['Valencia_pressure'].fillna(df['Valencia_pressure'].mean(), inplace = True)
+    
+    #converting Valencia_wind_deg and Seville_pressure from object to numeric
+    df['Valencia_wind_deg'] = df['Valencia_wind_deg'].str.extract('(\d+)').astype('float')
+    df['Seville_pressure'] = df['Seville_pressure'].str.extract('(\d+)').astype('float')
+    
+    df.drop(columns=['Week_of_year', 'Valencia_temp_max', 'Bilbao_temp_min', 'Barcelona_temp_max', 
+                 'Madrid_temp_min', 'Bilbao_temp_max', 'Day_of_year', 'Hour_of_week', 
+                 'Unnamed: 0','time', 'Seville_temp_min', 'Madrid_temp_max', 'Valencia_temp', 
+                 'Barcelona_temp', 'Seville_temp', 'Madrid_temp'], inplace=True)
+    
+    # Initialize StandardScaler
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(df)
+    X_scaled = pd.DataFrame(X_scaled,columns=df.columns)
+    
+    return X_scaled
     """Private helper function to preprocess data for model prediction.
 
     NB: If you have utilised feature engineering/selection in order to create
