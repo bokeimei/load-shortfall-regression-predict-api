@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import json
+from sklearn.preprocessing import StandardScaler
 
 def _preprocess_data(data):
     """Private helper function to preprocess data for model prediction.
@@ -48,7 +49,7 @@ def _preprocess_data(data):
     feature_vector_dict = json.loads(data)
     # Load the dictionary as a Pandas DataFrame.
     feature_vector_df = pd.DataFrame.from_dict([feature_vector_dict])
-
+    
     # ---------------------------------------------------------------
     # NOTE: You will need to swap the lines below for your own data
     # preprocessing methods.
@@ -58,9 +59,37 @@ def _preprocess_data(data):
     # ---------------------------------------------------------------
 
     # ----------- Replace this code with your own preprocessing steps --------
-    predict_vector = feature_vector_df[['Madrid_wind_speed','Bilbao_rain_1h','Valencia_wind_speed']]
-    # ------------------------------------------------------------------------
+    
+     # create new features
+    feature_vector_df['Year']  = feature_vector_df['time'].astype('datetime64').dt.year
+    feature_vector_df['Month_of_year']  = feature_vector_df['time'].astype('datetime64').dt.month
+    feature_vector_df['Week_of_year'] = feature_vector_df['time'].astype('datetime64').dt.weekofyear
+    feature_vector_df['Day_of_year']  = feature_vector_df['time'].astype('datetime64').dt.dayofyear
+    feature_vector_df['Day_of_month']  = feature_vector_df['time'].astype('datetime64').dt.day
+    feature_vector_df['Day_of_week'] = feature_vector_df['time'].astype('datetime64').dt.dayofweek
+    feature_vector_df['Hour_of_week'] = ((feature_vector_df['time'].astype('datetime64').dt.dayofweek) * 24 + 24) - (24 - feature_vector_df['time'].astype('datetime64').dt.hour)
+    feature_vector_df['Hour_of_day']  = feature_vector_df['time'].astype('datetime64').dt.hour
+    
+    #Filling missing values
+    feature_vector_df['Valencia_pressure'].fillna(feature_vector_df['Valencia_pressure'].mean(), inplace = True)
+    
+    #converting Valencia_wind_deg and Seville_pressure from object to numeric
+    feature_vector_df['Valencia_wind_deg'] = feature_vector_df['Valencia_wind_deg'].str.extract('(\d+)').astype('float')
+    feature_vector_df['Seville_pressure'] = feature_vector_df['Seville_pressure'].str.extract('(\d+)').astype('float')
+    
+    feature_vector_df.drop(columns=['Week_of_year', 'Valencia_temp_max', 'Bilbao_temp_min', 'Barcelona_temp_max', 
+                 'Madrid_temp_min', 'Bilbao_temp_max', 'Day_of_year', 'Hour_of_week', 
+                 'Unnamed: 0','time', 'Seville_temp_min', 'Madrid_temp_max', 'Valencia_temp', 
+                 'Barcelona_temp', 'Seville_temp', 'Madrid_temp'], inplace=True)
+    feature_vector_df.fillna(0, inplace=True)             
+    
+    # Initialize StandardScaler
+    scaler = StandardScaler()
+    predict_vector = scaler.fit_transform(feature_vector_df)
+    predict_vector = pd.DataFrame(predict_vector,columns=feature_vector_df.columns)
 
+    # ---------------------------------------------------------------
+    
     return predict_vector
 
 def load_model(path_to_model:str):
